@@ -1,0 +1,294 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        -144
+      ],
+      "id": "2a7e9776-84d3-43ba-a76d-4654e11bca5e",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "http://xmlcalendar.ru/data/ru/2022/calendar.csv",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -128,
+        -144
+      ],
+      "id": "970da87b-7574-48cd-879e-698efd9cb9e8",
+      "name": "Get CSV",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "options": {
+          "delimiter": ",",
+          "headerRow": true
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        -144
+      ],
+      "id": "29bd961f-e68e-4fe9-9a36-4b13dc18721e",
+      "name": "Parse CSV"
+    },
+    {
+      "parameters": {
+        "url": "http://xmlcalendar.ru/data/ru/2022/calendar.json",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -128,
+        64
+      ],
+      "id": "7dedbf60-e190-41af-b24d-6b696172cb51",
+      "name": "Get JSON"
+    },
+    {
+      "parameters": {
+        "jsCode": "const jsonData = $input.first().json;\nconst months = jsonData.months;\nconst stats = jsonData.statistic;\n\nconst csvFormat = {\n  \"Год/Месяц\": jsonData.year.toString(),\n  \"Январь\": months[0].days,\n  \"Февраль\": months[1].days,\n  \"Март\": months[2].days,\n  \"Апрель\": months[3].days,\n  \"Май\": months[4].days,\n  \"Июнь\": months[5].days,\n  \"Июль\": months[6].days,\n  \"Август\": months[7].days,\n  \"Сентябрь\": months[8].days,\n  \"Октябрь\": months[9].days,\n  \"Ноябрь\": months[10].days,\n  \"Декабрь\": months[11].days,\n  \"Всего рабочих дней\": stats.workdays.toString(),\n  \"Всего праздничных и выходных дней\": stats.holidays.toString(),\n  \"Количество рабочих часов при 40-часовой рабочей неделе\": stats.hours40.toString(),\n  \"Количество рабочих часов при 36-часовой рабочей неделе\": stats.hours36.toString(),\n  \"Количество рабочих часов при 24-часовой рабочей неделе\": stats.hours24.toString()\n};\n\nreturn [{ json: csvFormat }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        64
+      ],
+      "id": "4f8f22ef-3f52-429b-b468-6a358afaca0c",
+      "name": "Normalize JSON"
+    },
+    {
+      "parameters": {
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "Год/Месяц",
+              "field2": "Год/Месяц"
+            }
+          ]
+        },
+        "resolve": "preferInput1",
+        "options": {
+          "multipleMatches": "all"
+        }
+      },
+      "type": "n8n-nodes-base.compareDatasets",
+      "typeVersion": 2.3,
+      "position": [
+        336,
+        -64
+      ],
+      "id": "6e8b003b-87c9-417c-acaa-0de62a9f88e2",
+      "name": "Compare Datasets"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9dd5ed77-99d9-4425-86ae-1078e0a6848f",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        544,
+        -32
+      ],
+      "id": "b9c0c3db-2f8a-4bc4-a555-df595bc23454",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1fa4875-ae4a-4421-a736-bcf61f189a5e",
+              "name": "Success",
+              "value": "Файлы идентичны",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        752,
+        -128
+      ],
+      "id": "cdc938db-f658-44b3-a74f-5cb742932fe7",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ac422f1f-5a75-4451-b90b-83753962f2a0",
+              "name": "Error",
+              "value": "В файлах есть различия",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        752,
+        64
+      ],
+      "id": "4067f9d0-edfa-4be0-a278-9199b6dac403",
+      "name": "Edit Fields1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get JSON",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get CSV": {
+      "main": [
+        [
+          {
+            "node": "Parse CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get JSON": {
+      "main": [
+        [
+          {
+            "node": "Normalize JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse CSV": {
+      "main": [
+        [
+          {
+            "node": "Compare Datasets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize JSON": {
+      "main": [
+        [
+          {
+            "node": "Compare Datasets",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Compare Datasets": {
+      "main": [
+        [],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "84dbfabe-ff6e-4f53-9055-29d49a500f1b",
+  "meta": {
+    "instanceId": "2ce50f965876e54c6339e552995d0ac7cb0a19890bc33c4b2688ea4734d66c0d"
+  },
+  "id": "df-a6AyD3Vh9infTsrwb0",
+  "tags": []
+}
